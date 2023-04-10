@@ -1,15 +1,16 @@
 console.log('linkage disequilibrium sdk loaded')
 
-var ld = {}
+var ld = {'vcflib': null}
 
 /**
  * Main global portable module.
  * @namespace 
  * @property {Function} Ld - {@link Ld}
  *
- * @property {Function} calculate_probabilities_snp - {@link calculate_probabilities_snp}
- * @property {Function} calculate_ld - {@link calculate_ld}
- * @property {Function} perform_ld - {@link perform_ld}
+ * @namespace ld
+ * @property {Function} calculate_probabilities_snp - {@link ld.calculate_probabilities_snp}
+ * @property {Function} calculate_ld - {@link ld.calculate_ld}
+ * @property {Function} perform_ld - {@link ld.perform_ld}
  */
  
 /** 
@@ -20,14 +21,9 @@ var ld = {}
 * @example
 * let v = await Ld()
 */
-Ld = () => {
-    import('https://episphere.github.io/vcf/export.js').then( (mod) => {
-        ld.vcflib = mod
-        
-        if(typeof(jStat)=="undefined"){
-            ld.vcflib.vcf.loadScript('https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js')
-        }
-    })
+var Ld = async () => {
+    var mods = await Promise.all( [import('https://episphere.github.io/vcf/export.js'), loadScript('https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js')] )
+    ld.vcflib = mods[0]
 }
 
 /** 
@@ -38,9 +34,9 @@ Ld = () => {
 * @returns {Object} Object containing information of count (homozygous dominant, heterozygous and homozygous recessive) and probabilities p and q for a certain snp.
 * 
 * @example
-* let v = await Ld()
+* let v = await ld.calculate_probabilities_snp()
 */
-calculate_probabilities_snp = (snp_info) => {
+ld.calculate_probabilities_snp = (snp_info) => {
     var probs={}
     var j = 0
     var index_gen = 0
@@ -88,9 +84,9 @@ calculate_probabilities_snp = (snp_info) => {
 * @returns {Object} Object containing information of haplotypes count and the following statistical measures: chisquare, D', r², D and p-value.
 * 
 * @example
-* let v = calculate_ld()
+* let v = calculald.te_ld()
 */
-calculate_ld = (snp1, snp2) => {
+ld.calculate_ld = (snp1, snp2) => {
     var result = {'dl': -1, 'r2': -1}
     
     var index_gen = 0
@@ -172,8 +168,8 @@ calculate_ld = (snp1, snp2) => {
         })
         j*=2
         
-        var probs1 = calculate_probabilities_snp(snp1)
-        var probs2 = calculate_probabilities_snp(snp2)
+        var probs1 = ld.calculate_probabilities_snp(snp1)
+        var probs2 = ld.calculate_probabilities_snp(snp2)
         
         var result = {}
         result['chisq'] = 0
@@ -223,9 +219,9 @@ calculate_ld = (snp1, snp2) => {
 * @returns {Object} Object containing the linkage disequilibium result for all pairs combination of SNPs found in the given posiion range.
 * 
 * @example
-* let v = await perform_ld()
+* let v = await ld.perform_ld()
 */
-perform_ld = (chrom, start, end) => {
+ld.perform_ld = (chrom, start, end) => {
     var chrom = ld_chrom.value
     var start = ld_start.value
     var end = ld_end.value
@@ -246,7 +242,7 @@ perform_ld = (chrom, start, end) => {
     if(start < end){
         action_ld.disabled=true
         action_ld.innerHTML='Analyzing ...'
-        
+        console.log(ld.vcflib)
         ld.vcflib.Vcf(url).then( async (value) => {
             var vld = value
             var queries=[]
@@ -279,7 +275,7 @@ perform_ld = (chrom, start, end) => {
                 var j=0
                 for (var v of keys){
                     if(i<j){
-                        ld_result[k+'-'+v] = calculate_ld(snps[k], snps[v])
+                        ld_result[k+'-'+v] = ld.calculate_ld(snps[k], snps[v])
                     }
                     j+=1
                 }
@@ -301,5 +297,38 @@ perform_ld = (chrom, start, end) => {
     
 }
 
+/** 
+* Load a certain dependency library from link
+* 
+*
+* @param {string} url Library URL.
+* 
+* @example
+* loadScript('https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js')
+*
+*/
+ld.loadScript= async function(url){
+	console.log(`${url} loaded`)
+    async function asyncScript(url){
+        let load = new Promise((resolve,regect)=>{
+            let s = document.createElement('script')
+            s.src=url
+            s.onload=resolve
+            document.head.appendChild(s)
+        })
+        await load
+    }
+    // satisfy dependencies
+    await asyncScript(url)
+} 
 
+if(typeof(jStat)=="undefined"){
+    ld.loadScript('https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js')
+}
+
+if(ld.vcflib==null){
+    import('https://episphere.github.io/vcf/export.js').then( mod => {
+        ld.vcflib = mod
+    })
+}
 

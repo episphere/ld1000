@@ -7,12 +7,9 @@
         <link rel="icon" href="favicon.ico" type="image/x-icon"/>
         
         <link rel="stylesheet" href="ld1000.css">
-        <script src="ld1000.js"></script>
-        
         <script src="gendoc.js"></script>
         <link rel="stylesheet" href="gendoc.css">
         
-        <script src="index.js"></script>
         
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
         
@@ -24,7 +21,7 @@
             
                 <section id="header">
                     <h1>
-                        VCF 
+                        LD SDK 
                         <sup style="font-size:medium;color:green"><a href="https://dceg.cancer.gov/" target="_blank" style="color:green">DCEG</a></sup> <br>
                         <span style="font-size:small;color:blue">
                             [<a href="https://github.com/episphere/ld1000" target="_blank">code</a>] 
@@ -40,7 +37,7 @@
                     
                 <ul class="nav nav-tabs" id="options" role="tablist">
                   <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">About IARC Library</button>
+                    <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">About LD SDK Library</button>
                   </li>
                   
                   <li class="nav-item" role="presentation">
@@ -99,6 +96,9 @@
                     </div>
                 </div>
                 
+                <script src="ld1000.js"></script>
+        
+                <script src="index.js"></script>
                 <script>
                     //fetch("00-All.vcf.gz.idx.json").then(x=>x.json().then(x=>{idx=x;readRange.disabled=false}))
                     
@@ -111,12 +111,7 @@
                     */
                     
                     gendoc.buildDocumentation( location.href.split('#')[0]+'ld1000.js', 'documentation-content', 'https://github.com/episphere/ld1000/blob/main/ld1000.js')
-                    
-                    handleUrlParams()
-                    
                 </script>
-        
-                <script src="studycase_ld.js"></script>
         
             </div>
         </div>

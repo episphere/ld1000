@@ -12,6 +12,6 @@ execute_ld = () => {
     var start = ld_start.value
     var end = ld_end.value
     
-    var ld_result=perform_ld(chrom, start, end)
+    var ld_result = ld.perform_ld(chrom, start, end)
     
 }
