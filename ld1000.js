@@ -221,7 +221,7 @@ ld.calculate_ld = (snp1, snp2) => {
 * @example
 * let v = await ld.perform_ld()
 */
-ld.perform_ld = (chrom, start, end) => {
+ld.perform_ld = async (chrom, start, end) => {
     var chrom = ld_chrom.value
     var start = ld_start.value
     var end = ld_end.value
@@ -243,8 +243,9 @@ ld.perform_ld = (chrom, start, end) => {
         action_ld.disabled=true
         action_ld.innerHTML='Analyzing ...'
         console.log(ld.vcflib)
-        ld.vcflib.Vcf(url).then( async (value) => {
-            var vld = value
+        var vld = await ld.vcflib.Vcf(url)
+        //ld.vcflib.Vcf(url).then( async (value) => {
+        //    var vld = value
             var queries=[]
             for( var i=start; i<=end; i++){
                 queries.push(chrom+','+i)
@@ -288,13 +289,26 @@ ld.perform_ld = (chrom, start, end) => {
             console.log(ld_result)
             
             return ld_result
-        })
+        //})
     }
     else{
         alert('End position must be higher than the start position')
         return ld_result
     }
     
+}
+
+ld.showResults = (results, container) => {
+    eval(container).innerHTML=''
+    var htmls='<ul>'
+    var keys = Object.keys(results)
+    keys.forEach( e => {
+        if( results[e]['r2']!=-1 ){
+            htmls+=`<li> <strong>(${e.replace('-', ', ')})</strong> - R&sup2;: ${results[e]['r2']}, D': ${results[e]['dl']}, P-value: ${results[e]['pvalue']} </li>`
+        }
+    })
+    htmls+='</ul>'
+    eval(container).innerHTML=htmls
 }
 
 /** 
