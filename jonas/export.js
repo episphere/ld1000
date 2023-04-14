@@ -55,6 +55,13 @@ async function UI(div){
     chrSelect1.onchange=function(){
          chrSelect2.value=chrSelect1.value
     }
+    async function retrieveChrPos(){
+        let V1 = await connectVCF(chrSelect1.value)
+        if(chrSelect2.value!=chrSelect1.value){
+            
+        }
+    }
+    
 }
 
 export{
