@@ -64,6 +64,7 @@ async function UI(div){
     }
 
     async function retrieveChrPos(){ // caching VCF connections
+        div.querySelector('#resultsDiv').innerHTML=`<span style="color:maroon">Processing ... it shouldn't take more than a minute. <br>Check console if it doesn't and report error as <a href="https://github.com/episphere/ld1000/issues" target="_blank">an issue</a>. <br>(${Date()})</span>`
         if(!VV[chrSelect1.value]){
             VV[chrSelect1.value] = await connectVCF(chrSelect1.value)
         }
@@ -77,10 +78,61 @@ async function UI(div){
         let chr1 = chrSelect1.value.match(/[0-9,X,Y,M,T]+/)[0]
         let chr2 = chrSelect2.value.match(/[0-9,X,Y,M,T]+/)[0]
         let q1 = await V1.query(`${chr1}:${pos1}`)
+        q1.q=`${chr1}:${pos1}`
         let q2 = await V2.query(`${chr2}:${pos2}`)
-        debugger
-        div.querySelector('#resultsDiv').innerHTML=`<hr>${JSON.stringify(q1.hit)}<hr>${JSON.stringify(q2.hit)}<hr>`
+        q2.q=`${chr2}:${pos2}`
+        async function qq(q,V){ // making sure long rows are caught
+            document.V0=V
+            if(q.hit.length>0){
+                console.log(`${q.q} ${q.hit.length} hit`)
+                // check hit is complete
+                if(V.cols.length>q.hit[0].length){ // stitch missing text
+                    //let  fg = await V.fetchGz([q.ii.slice(-1)[0]-V.keyGap,q.ii.slice(-1)[0]+4*V.keyGap])
+                    let txt = (await V.fetchGz(q.ii[0])).txt+(await V.fetchGz(q.ii[1])).txt
+                    q.hit = txt.split('\n')
+                        .filter(r=>r.match(q.q.replace(':','\t')))
+                        .map(r=>r.split('\t'))
+                }
+            }else{
+                console.log(`${q.q} no hit`)
+            }
+            return q
+        }
+        q1 = await qq(q1,V1)
+        q2 = await qq(q2,V2)
+        //debugger
+        //prepare counts
+
+        
+        let h=`<hr>`
+         h+=`<table>`
+        h+=`<tr align="left"><th>chr:position</th><th>${q1.q}</th><th>${q2.q}</th></th>`
+        h+=`<tr align="left"><td style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</td><td style="font-size:x-small">[${q1.hit[0][2]}]${q1.hit[0][3]}>${q1.hit[0][4]}(${q1.hit[0][5]}-${q1.hit[0][6]})</td><td style="font-size:x-small">[${q1.hit[0][2]}]${q1.hit[0][3]}>${q2.hit[0][4]}(${q2.hit[0][5]}-${q2.hit[0][6]})</td></th>`
+        h+=`<tr align="left"><td>(0|0)(0|0)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(1|0)(0|0)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(0|1)(0|0)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(1|1)(0|0)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(0|0)(1|0)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(1|0)(1|0)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(0|1)(1|0)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(1|1)(1|0)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(0|0)(0|1)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(1|0)(0|1)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(0|1)(0|1)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(1|1)(0|1)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(0|0)(1|1)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(1|0)(1|1)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(0|1)(1|1)</td><td>2</td><td>3</td></tr>`
+        h+=`<tr align="left"><td>(1|1)(1|1)</td><td>2</td><td>3</td></tr>`
+        // total
+        h+=`<tr align="left"><td>Total</td><td>123</td><td>123</td></tr>`
+        
+        h+=`</table>`
+        div.querySelector('#resultsDiv').innerHTML=h
+        //div.querySelector('#resultsDiv').innerHTML=`<hr>${JSON.stringify(q1.hit)}<hr>${JSON.stringify(q2.hit)}<hr>`
         // try 7:16876630 vs 7:16876630
+        4
+        
 
         
     }
