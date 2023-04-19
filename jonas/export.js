@@ -27,6 +27,56 @@ async function connectVCF(url=1){
     return await Vcf(url)
 }
 
+async function LDextraction(chrpos1,chrpos2){
+     if(!VV[chrSelect1.value]){
+            VV[chrSelect1.value] = await connectVCF(chrSelect1.value)
+        }
+        if(!VV[chrSelect2.value]){ // in the rare instance chrSelect2 is different from 1
+            VV[chrSelect2.value] = await connectVCF(chrSelect2.value)
+        }
+        let V1 = VV[chrSelect1.value]
+        let V2 = VV[chrSelect2.value]
+        let pos1 = div.querySelector('#pos1').value
+        let pos2 = div.querySelector('#pos2').value
+        let chr1 = chrSelect1.value.match(/[0-9,X,Y,M,T]+/)[0]
+        let chr2 = chrSelect2.value.match(/[0-9,X,Y,M,T]+/)[0]
+        let q1 = await V1.query(`${chr1}:${pos1}`)
+        q1.q=`${chr1}:${pos1}`
+        let q2 = await V2.query(`${chr2}:${pos2}`)
+        q2.q=`${chr2}:${pos2}`
+        async function qq(q,V){ // making sure long rows are caught
+            document.V0=V
+            if(q.hit.length>0){
+                console.log(`${q.q} ${q.hit.length} hit`)
+                // check hit is complete
+                if(V.cols.length>q.hit[0].length){ // stitch missing text
+                    //let  fg = await V.fetchGz([q.ii.slice(-1)[0]-V.keyGap,q.ii.slice(-1)[0]+4*V.keyGap])
+                    let txt = (await V.fetchGz(q.ii[0])).txt+(await V.fetchGz(q.ii[1])).txt
+                    q.hit = txt.split('\n')
+                        .filter(r=>r.match(q.q.replace(':','\t')))
+                        .map(r=>r.split('\t'))
+                }
+            }else{
+                console.log(`${q.q} no hit`)
+            }
+            return q
+        }
+        q1 = await qq(q1,V1)
+        q2 = await qq(q2,V2)
+        //debugger
+        //prepare counts
+
+        let data={
+            cols1:V1.cols.slice(9),
+            cols2:V2.cols.slice(9),
+            q1:q1,
+            q2:q2,
+            chrpos1:q1.q,
+            chrpos2:q2.q
+        }
+    return data
+}
+
 async function UI(div){
     if(!div){
         div = document.createElement('div')
@@ -103,6 +153,14 @@ async function UI(div){
         //debugger
         //prepare counts
 
+        let data={
+            cols1:V1.cols.slice(9),
+            cols2:V2.cols.slice(9),
+            q1:q1,
+            q2:q2,
+            chrpos1:q1.q,
+            chrpos2:q2.q
+        }
         
         let h=`<hr>`
          h+=`<table>`
@@ -146,5 +204,6 @@ async function UI(div){
 export{
     connectVCF,
     UI,
-    VV
+    VV,
+    LDextraction
 }
