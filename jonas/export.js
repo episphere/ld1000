@@ -27,19 +27,22 @@ async function connectVCF(url=1){
     return await Vcf(url)
 }
 
-async function LDextraction(chrpos1,chrpos2){
-     if(!VV[chrSelect1.value]){
-            VV[chrSelect1.value] = await connectVCF(chrSelect1.value)
+async function LDextraction(chrpos1='chr7:16876630',chrpos2='chr7:16863828'){
+    let chr1 = chrpos1.match(/(chr\w+):(\w+)/)[1]
+    let pos1 = chrpos1.match(/(chr\w+):(\w+)/)[2]
+    let chr2 = chrpos2.match(/(chr\w+):(\w+)/)[1]
+    let pos2 = chrpos2.match(/(chr\w+):(\w+)/)[2]
+    if(!VV[chr1]){
+            VV[chr1] = await connectVCF(chr1)
         }
-        if(!VV[chrSelect2.value]){ // in the rare instance chrSelect2 is different from 1
-            VV[chrSelect2.value] = await connectVCF(chrSelect2.value)
+        if(!VV[chr2]){ // in the rare instance chrSelect2 is different from 1
+            VV[chr2] = await connectVCF(chr2)
         }
-        let V1 = VV[chrSelect1.value]
-        let V2 = VV[chrSelect2.value]
-        let pos1 = div.querySelector('#pos1').value
-        let pos2 = div.querySelector('#pos2').value
-        let chr1 = chrSelect1.value.match(/[0-9,X,Y,M,T]+/)[0]
-        let chr2 = chrSelect2.value.match(/[0-9,X,Y,M,T]+/)[0]
+        let V1 = VV[chr1]
+        let V2 = VV[chr2]
+        // Extract chr values
+        chr1 = chr1.match(/[0-9,X,Y,M,T]+/)[0]
+        chr2 = chr2.match(/[0-9,X,Y,M,T]+/)[0]
         let q1 = await V1.query(`${chr1}:${pos1}`)
         q1.q=`${chr1}:${pos1}`
         let q2 = await V2.query(`${chr2}:${pos2}`)
@@ -127,6 +130,14 @@ async function UI(div){
         let pos2 = div.querySelector('#pos2').value
         let chr1 = chrSelect1.value.match(/[0-9,X,Y,M,T]+/)[0]
         let chr2 = chrSelect2.value.match(/[0-9,X,Y,M,T]+/)[0]
+
+        let chrpos1 = `chr${chr1}:${pos1}`
+        let chrpos2 = `chr${chr2}:${pos2}`
+        let data = await LDextraction(chrpos1,chrpos2)
+
+        // chrpos1='chr7:16876630',chrpos2='chr7:16863828'
+        
+        /*
         let q1 = await V1.query(`${chr1}:${pos1}`)
         q1.q=`${chr1}:${pos1}`
         let q2 = await V2.query(`${chr2}:${pos2}`)
@@ -161,11 +172,12 @@ async function UI(div){
             chrpos1:q1.q,
             chrpos2:q2.q
         }
+        */
         
         let h=`<hr>`
          h+=`<table>`
-        h+=`<tr align="left"><th>chr:position</th><th>${q1.q}</th><th>${q2.q}</th></th>`
-        h+=`<tr align="left"><td style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</td><td style="font-size:x-small">[${q1.hit[0][2]}]${q1.hit[0][3]}>${q1.hit[0][4]}(${q1.hit[0][5]}-${q1.hit[0][6]})</td><td style="font-size:x-small">[${q1.hit[0][2]}]${q1.hit[0][3]}>${q2.hit[0][4]}(${q2.hit[0][5]}-${q2.hit[0][6]})</td></th>`
+        h+=`<tr align="left"><th>chr:position</th><th>${data.q1.q}</th><th>${data.q2.q}</th></th>`
+        h+=`<tr align="left"><td style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q1.hit[0][4]}(${data.q1.hit[0][5]}-${data.q1.hit[0][6]})</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q2.hit[0][4]}(${data.q2.hit[0][5]}-${data.q2.hit[0][6]})</td></th>`
         h+=`<tr align="left"><td>(0|0)(0|0)</td><td>2</td><td>3</td></tr>`
         h+=`<tr align="left"><td>(1|0)(0|0)</td><td>2</td><td>3</td></tr>`
         h+=`<tr align="left"><td>(0|1)(0|0)</td><td>2</td><td>3</td></tr>`
