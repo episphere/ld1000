@@ -63,13 +63,13 @@ async function LDextraction(chrpos1='chr7:16876630',chrpos2='chr7:16863828'){
                 if(!q.range){
                     q.range=q.range.dt
                 }
-                if(Array.isArray(q.range)){
+                if(!Array.isArray(q.range)){
                     q.range=q.range.dt
                 }
                 if(!q.range){
                     console.log('something wrong with range for this position')
                     q.range=[]
-                    debugger
+                    //debugger
                 }
                 //debugger
                 console.log(`${q.q} no hit`)
@@ -186,7 +186,7 @@ async function UI(div){
         }
         */
         
-        let h2=`<hr><table><tr><td>`
+        let h2=`<hr><table><tr style="vertical-align:top"><td>`
         if(data.q1.hit.length>0){
             h2+=`1) <b style="color:maroon;font-size:large"> ${data.chrpos1}</b><span style="font-size:x-small;color:darkgreen">
             <br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp [ID]REF>ALT(QUAL-FILTER)
@@ -194,7 +194,7 @@ async function UI(div){
             <br>Close Neighbours:
             <br>${data.q1.range.map(r=>`&nbsp&nbsp&nbsp&nbsp<span style="color:blue;cursor:pointer" class="setPos1">${r[0]}:${r[1]}</span>`).join('<br>')}`
         }else{
-            debugger
+            //debugger
             h2+=`1) <b style="color:maroon;font-size:large"> ${data.chrpos1} --> No hit !</b>
             <span style="font-size:small"><br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Maybe check kneighbouring positions.</span>
             <br>Close Neighbours:
@@ -220,23 +220,24 @@ async function UI(div){
         h2+='Counts'
 
         h2+=`<table id="countCombinations" style="color:maroon">`
-        h2+=`<tr align="left"><td>(0|0)(0|0)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(1|0)(0|0)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(0|1)(0|0)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(1|1)(0|0)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(0|0)(1|0)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(1|0)(1|0)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(0|1)(1|0)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(1|1)(1|0)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(0|0)(0|1)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(1|0)(0|1)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(0|1)(0|1)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(1|1)(0|1)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(0|0)(1|1)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(1|0)(1|1)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(0|1)(1|1)</td><td>2</td></tr>`
-        h2+=`<tr align="left"><td>(1|1)(1|1)</td><td>2</td></tr>`
+        h2+=`<tr><td>(0|0)(0|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|0)(0|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|1)(0|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|1)(0|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|0)(1|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|0)(1|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|1)(1|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|1)(1|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|0)(0|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|0)(0|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|1)(0|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|1)(0|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|0)(1|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|0)(1|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|1)(1|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|1)(1|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
         h2+=`</table>`
+        h2+=`<sub style="font-size:medium">*</sub>) <span id="OO" style="font-size:x-small">...</span>`
         
         //<span style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</span>`
         
@@ -294,6 +295,21 @@ async function UI(div){
                 let tr=tbCount.children[0].children[i]
                 let pat=tr.children[0].textContent // combination pattern
                 tr.children[1].textContent=qqPat.filter(x=>x==pat).length
+                let pts = [] // participants
+                qqPat.forEach((x,i)=>{
+                    if(qqPat[i]==pat){
+                        pts.push(data.cols1[i])
+                    }
+                })
+                if(pts.length>1000){
+                    tr.children[2].textContent='*'
+                    div.querySelector('#OO').textContent=pts.join(', ')
+                }else{
+                    tr.children[2].textContent=pts.slice(0,3).join(', ')
+                    if(pts.length>3){
+                        tr.children[2].textContent+='...'
+                    }
+                }
                 //debugger
                 //4
             }
