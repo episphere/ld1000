@@ -60,6 +60,18 @@ async function LDextraction(chrpos1='chr7:16876630',chrpos2='chr7:16863828'){
                         .map(r=>r.split('\t'))
                 }
             }else{
+                if(!q.range){
+                    q.range=q.range.dt
+                }
+                if(Array.isArray(q.range)){
+                    q.range=q.range.dt
+                }
+                if(!q.range){
+                    console.log('something wrong with range for this position')
+                    q.range=[]
+                    debugger
+                }
+                //debugger
                 console.log(`${q.q} no hit`)
             }
             return q
@@ -93,10 +105,10 @@ async function UI(div){
     div.innerHTML=`
         <h3><a href="https://episphere.github.io/ld1000/jonas" target="_blank">LD1000</a> calculator</h3>
         Chromossome 1: <select id="chrSelect1"></select> Position 1 <input type="number" id="pos1" value=16876630>
-        <br>Chromossome 2<sup>*</sup>: <select id="chrSelect2"></select>  Position 2 <input type="text" id="pos2" value=16863828>
+        <br>Chromossome 2<sup>*</sup>: <select id="chrSelect2"></select>  Position 2 <input type="number" id="pos2" value=16863828>
+        <br><sub>*</sub><span style="font-size:x-small">) by default the same chromossome, different chromossomes are not linked.</span>
         <p><button id="retrievePosButton">Retrieve positions</button> directly from <a href="http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/" target="_blank">1000genomes</a>:</p>
-        <div id="resultsDiv">...</div>
-        <p>* <span style="font-size:x-small">by default the same chromossome, different chromossomes are not linked.</span></p>`
+        <div id="resultsDiv">...</div>`
     let chrs=[...Array(22)].map((_,i)=>`chr${i+1}`).concat(['X','Y','MT'])
     let chrSelect1=div.querySelector('#chrSelect1');
     chrs.forEach(chr=>{
@@ -174,31 +186,120 @@ async function UI(div){
         }
         */
         
-        let h=`<hr>`
-         h+=`<table>`
-        h+=`<tr align="left"><th>chr:position</th><th>${data.q1.q}</th><th>${data.q2.q}</th></th>`
-        h+=`<tr align="left"><td style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q1.hit[0][4]}(${data.q1.hit[0][5]}-${data.q1.hit[0][6]})</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q2.hit[0][4]}(${data.q2.hit[0][5]}-${data.q2.hit[0][6]})</td></th>`
-        h+=`<tr align="left"><td>(0|0)(0|0)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(1|0)(0|0)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(0|1)(0|0)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(1|1)(0|0)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(0|0)(1|0)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(1|0)(1|0)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(0|1)(1|0)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(1|1)(1|0)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(0|0)(0|1)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(1|0)(0|1)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(0|1)(0|1)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(1|1)(0|1)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(0|0)(1|1)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(1|0)(1|1)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(0|1)(1|1)</td><td>2</td><td>3</td></tr>`
-        h+=`<tr align="left"><td>(1|1)(1|1)</td><td>2</td><td>3</td></tr>`
-        // total
-        h+=`<tr align="left"><td>Total</td><td>123</td><td>123</td></tr>`
+        let h2=`<hr><table><tr><td>`
+        if(data.q1.hit.length>0){
+            h2+=`1) <b style="color:maroon;font-size:large"> ${data.chrpos1}</b><span style="font-size:x-small;color:darkgreen">
+            <br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp [ID]REF>ALT(QUAL-FILTER)
+            <br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp [${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q1.hit[0][4]}(${data.q1.hit[0][5]}-${data.q1.hit[0][6]})</span>
+            <br>Close Neighbours:
+            <br>${data.q1.range.map(r=>`&nbsp&nbsp&nbsp&nbsp<span style="color:blue;cursor:pointer" class="setPos1">${r[0]}:${r[1]}</span>`).join('<br>')}`
+        }else{
+            debugger
+            h2+=`1) <b style="color:maroon;font-size:large"> ${data.chrpos1} --> No hit !</b>
+            <span style="font-size:small"><br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Maybe check kneighbouring positions.</span>
+            <br>Close Neighbours:
+            <br>${data.q1.range.map(r=>`&nbsp&nbsp&nbsp&nbsp<span style="color:blue;cursor:pointer" class="setPos1">${r[0]}:${r[1]}</span>`).join('<br>')}`
+            //debugger
+        }
+        h2+=`</td><td>`
+        if(data.q2.hit.length>0){
+            h2+=`2) <b style="color:maroon;font-size:large"> ${data.chrpos2}</b><span style="font-size:x-small;color:darkgreen">
+            <br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp [ID]REF>ALT(QUAL-FILTER)
+            <br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp [${data.q2.hit[0][2]}]${data.q2.hit[0][3]}>${data.q2.hit[0][4]}(${data.q2.hit[0][5]}-${data.q2.hit[0][6]})</span>
+            <br>Close Neighbours:
+            <br>${data.q2.range.map(r=>`&nbsp&nbsp&nbsp&nbsp<span style="color:blue;cursor:pointer" class="setPos2">${r[0]}:${r[1]}</span>`).join('<br>')}`
         
-        h+=`</table>`
-        div.querySelector('#resultsDiv').innerHTML=h
+        }else{
+            h2+=`2) <b style="color:maroon;font-size:large"> ${data.chrpos2} --> No hit !</b>
+            <span style="font-size:small"><br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Maybe check kneighbouring positions.</span>
+            <br>Close Neighbours:
+            <br>${data.q2.range.map(r=>`&nbsp&nbsp&nbsp&nbsp<span style="color:blue;cursor:pointer" class="setPos2">${r[0]}:${r[1]}</span>`).join('<br>')}`
+        }
+        h2+=`</td></tr><table><tr><td>`
+
+        h2+='Counts'
+
+        h2+=`<table id="countCombinations" style="color:maroon">`
+        h2+=`<tr align="left"><td>(0|0)(0|0)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(0|0)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(0|0)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(0|0)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(0|0)(1|0)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(1|0)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(1|0)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(1|0)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(0|0)(0|1)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(0|1)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(0|1)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(0|1)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(0|0)(1|1)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(1|1)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(1|1)</td><td>2</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(1|1)</td><td>2</td></tr>`
+        h2+=`</table>`
+        
+        //<span style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</span>`
+        
+        /*
+        let h=`<hr>`
+        h2+=`<table>`
+        h2++=`<tr align="left"><th>chr:position</th><th>${data.q1.q}</th><th>${data.q2.q}</th></th>`
+        h2++=`<tr align="left"><td style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q1.hit[0][4]}(${data.q1.hit[0][5]}-${data.q1.hit[0][6]})</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q2.hit[0][4]}(${data.q2.hit[0][5]}-${data.q2.hit[0][6]})</td></th>`
+        h2\+=`<tr align="left"><td>(0|0)(0|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(0|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(0|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(0|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|0)(1|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(1|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(1|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(1|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|0)(0|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(0|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(0|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(0|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|0)(1|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(1|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(1|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(1|1)</td><td>2</td><td>3</td></tr>`
+        // total
+        h2+=`<tr align="left"><td>Total</td><td>123</td><td>123</td></tr>`
+        
+        h2+=`</table>`
+        */
+        
+        div.querySelector('#resultsDiv')
+        div.querySelector('#resultsDiv').innerHTML=h2
+
+        div.querySelectorAll('.setPos1').forEach(x=>{
+            x.onclick=function(){
+                div.querySelector('#pos1').value=this.textContent.split(':')[1]
+            }
+        })
+        div.querySelectorAll('.setPos2').forEach(x=>{
+            x.onclick=function(){
+                div.querySelector('#pos2').value=this.textContent.split(':')[1]
+            }
+        })
+
+        // counting combinations if both hit
+
+            
+
+        if((data.q1.hit.length>0)&(data.q1.hit.length>0)){ // if both hits
+            let qqPat1=data.q1.hit[0].slice(9)
+            let qqPat2=data.q2.hit[0].slice(9)
+            let qqPat=qqPat1.map((x,i)=>`(${x})(${qqPat2[i]})`) // combined pattern
+            let tbCount = div.querySelector('#countCombinations')
+            for(let i=0;i<tbCount.children[0].children.length;i++){
+                let tr=tbCount.children[0].children[i]
+                let pat=tr.children[0].textContent // combination pattern
+                tr.children[1].textContent=qqPat.filter(x=>x==pat).length
+                //debugger
+                //4
+            }
+        }
+            
+        
         //div.querySelector('#resultsDiv').innerHTML=`<hr>${JSON.stringify(q1.hit)}<hr>${JSON.stringify(q2.hit)}<hr>`
         // try 7:16876630 vs 7:16876630
         4
