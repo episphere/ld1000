@@ -104,8 +104,8 @@ async function UI(div){
     
     div.innerHTML=`
         <h3><a href="https://episphere.github.io/ld1000/jonas" target="_blank">LD1000</a> calculator</h3>
-        Chromossome 1: <select id="chrSelect1"></select> Position 1 <input type="number" id="pos1" value=16876630>
-        <br>Chromossome 2<sup>*</sup>: <select id="chrSelect2"></select>  Position 2 <input type="number" id="pos2" value=16863828>
+        Chromossome 1: <select id="chrSelect1"></select> Position 1 <input type="number" id="pos1" value=16876455>
+        <br>Chromossome 2<sup>*</sup>: <select id="chrSelect2"></select>  Position 2 <input type="number" id="pos2" value=16863727>
         <br><sub>*</sub><span style="font-size:x-small">) by default the same chromossome, different chromossomes are not linked.</span>
         <p><button id="retrievePosButton">Retrieve positions</button> directly from <a href="http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/" target="_blank">1000genomes</a>:</p>
         <div id="resultsDiv">...</div>`
