@@ -1,351 +1,338 @@
-console.log('linkage disequilibrium sdk loaded')
+import {Vcf} from 'https://episphere.github.io/vcf/export.js'
 
-var ld = {'vcflib': null}
+var VV={} // Caching connections here
 
-/**
- * Main global portable module.
- * @namespace 
- * @property {Function} Ld - {@link Ld}
- *
- * @namespace ld
- * @property {Function} calculate_probabilities_snp - {@link ld.calculate_probabilities_snp}
- * @property {Function} calculate_ld - {@link ld.calculate_ld}
- * @property {Function} perform_ld - {@link ld.perform_ld}
- */
- 
-/** 
-* Initializes main library object.
-*
-* @returns {Object} LD library object.
-* 
-* @example
-* let v = await Ld()
-*/
-var Ld = async () => {
-    var mods = await Promise.all( [import('https://episphere.github.io/vcf/export.js'), loadScript('https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js')] )
-    ld.vcflib = mods[0]
+async function connectVCF(url=1){
+    const baseURL='http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr1.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz'
+    if(typeof(url)=='number'){
+        url=baseURL.replace('chr1',`chr${url}`)
+    }else if((typeof(url)=='string')&(url.length<6)){
+        url=baseURL.replace('chr1',`${url}`)
+    }
+    if(url.length<3){  // MT X Y
+        switch (url){
+            case 'MT':
+                url='http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chrMT.phase3_callmom-v0_4.20130502.genotypes.vcf.gz';
+                break;
+            case 'X':
+                url='http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chrX.phase3_shapeit2_mvncall_integrated_v1c.20130502.genotypes.vcf.gz';
+                break;
+            case 'Y':
+                url='http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chrY.phase3_integrated_v2b.20130502.genotypes.vcf.gz';
+                break;
+            default:
+                error(`${url} not found`)
+        }
+    }
+    return await Vcf(url)
 }
 
-/** 
-* Calculates probabilities and counts occurrences of each phenotype
-*
-* @param {Array} snp_info Array containing a line of the vcf file concerning the snp
-*
-* @returns {Object} Object containing information of count (homozygous dominant, heterozygous and homozygous recessive) and probabilities p and q for a certain snp.
-* 
-* @example
-* let v = await ld.calculate_probabilities_snp()
-*/
-ld.calculate_probabilities_snp = (snp_info) => {
-    var probs={}
-    var j = 0
-    var index_gen = 0
-    snp_info.forEach( e => { if(e.length==3 && e.indexOf('|')==1 && index_gen==0){ index_gen=j; } j+=1  })
-    if(index_gen!=0){
-        var cnts={}
-        var total = 0
-        j=0
-        snp_info.forEach( e => { 
-            if(e.length==3 && e.indexOf('|')==1 && j>=index_gen ){ 
-                if( e.split('|')[0] != e.split('|')[1] ){
-                    e='mix'
+async function LDextraction(chrpos1='chr7:16876630',chrpos2='chr7:16863828'){
+    let chr1 = chrpos1.match(/(chr\w+):(\w+)/)[1]
+    let pos1 = chrpos1.match(/(chr\w+):(\w+)/)[2]
+    let chr2 = chrpos2.match(/(chr\w+):(\w+)/)[1]
+    let pos2 = chrpos2.match(/(chr\w+):(\w+)/)[2]
+    if(!VV[chr1]){
+            VV[chr1] = await connectVCF(chr1)
+        }
+        if(!VV[chr2]){ // in the rare instance chrSelect2 is different from 1
+            VV[chr2] = await connectVCF(chr2)
+        }
+        let V1 = VV[chr1]
+        let V2 = VV[chr2]
+        // Extract chr values
+        chr1 = chr1.match(/[0-9,X,Y,M,T]+/)[0]
+        chr2 = chr2.match(/[0-9,X,Y,M,T]+/)[0]
+        let q1 = await V1.query(`${chr1}:${pos1}`)
+        q1.q=`${chr1}:${pos1}`
+        let q2 = await V2.query(`${chr2}:${pos2}`)
+        q2.q=`${chr2}:${pos2}`
+        async function qq(q,V){ // making sure long rows are caught
+            document.V0=V
+            if(q.hit.length>0){
+                console.log(`${q.q} ${q.hit.length} hit`)
+                // check hit is complete
+                if(V.cols.length>q.hit[0].length){ // stitch missing text
+                    //let  fg = await V.fetchGz([q.ii.slice(-1)[0]-V.keyGap,q.ii.slice(-1)[0]+4*V.keyGap])
+                    let txt = (await V.fetchGz(q.ii[0])).txt+(await V.fetchGz(q.ii[1])).txt
+                    q.hit = txt.split('\n')
+                        .filter(r=>r.match(q.q.replace(':','\t')))
+                        .map(r=>r.split('\t'))
                 }
-                if( ! Object.keys(cnts).includes(e) ){
-                    cnts[e]=0
+            }else{
+                if(!q.range){
+                    q.range=q.range.dt
                 }
-                cnts[e]+=1 
-                total+=1
-            } 
-            j+=1  
-        })
-        total *= 2 // Total number of chromosomes in the population
-        
-        for ( var k of ['0|0', 'mix', '1|1']){
-            if( ! Object.keys(cnts).includes(k) ){
-                cnts[k]=0
+                if(!Array.isArray(q.range)){
+                    q.range=q.range.dt
+                }
+                if(!q.range){
+                    console.log('something wrong with range for this position')
+                    q.range=[]
+                    //debugger
+                }
+                //debugger
+                console.log(`${q.q} no hit`)
             }
+            return q
         }
-        
-        for(var k of Object.keys(cnts)){
-            probs['count_'+k] = cnts[k]
+        q1 = await qq(q1,V1)
+        q2 = await qq(q2,V2)
+        //debugger
+        //prepare counts
+
+        let data={
+            cols1:V1.cols.slice(9),
+            cols2:V2.cols.slice(9),
+            q1:q1,
+            q2:q2,
+            chrpos1:q1.q,
+            chrpos2:q2.q
         }
-        probs['p'] = ( (2*cnts['0|0']) + cnts['mix'] )/total
-        probs['q'] = ( cnts['mix'] + (2*cnts['1|1']) )/total
-    }
-    return probs
+    return data
 }
 
-/** 
-* Calculates r2 and d' metrics for a pair of snps
-*
-* @param {Array} snp1 Array containing a line of the vcf file concerning the first snp
-* @param {Array} snp2 Array containing a line of the vcf file concerning the second snp
-*
-* @returns {Object} Object containing information of haplotypes count and the following statistical measures: chisquare, D', r², D and p-value.
-* 
-* @example
-* let v = calculald.te_ld()
-*/
-ld.calculate_ld = (snp1, snp2) => {
-    var result = {'dl': -1, 'r2': -1}
-    
-    var index_gen = 0
-    var j=0
-    snp1.forEach( e => { if(e.length==3 && e.indexOf('|')==1 && index_gen==0){ index_gen=j; } j+=1  })
-    if(index_gen!=0 && snp1.length == snp2.length){
-        var cnts={}
-        j=0
-        var snp = snp1
-        var snp_2=snp2
-        if(snp1.length < snp2.length){
-            snp=snp2
-            snp_2=snp1
-        }
-        snp.forEach( e => { 
-            if(e.length==3 && e.indexOf('|')==1 && j>=index_gen ){ 
-                if( e.split('|')[0] != e.split('|')[1] ){
-                    e='mix'
-                }
-                var f = snp_2[j]
-                if(f!=undefined){
-                    if( f.split('|')[0] != f.split('|')[1] ){
-                        f='mix'
-                    }
-                    
-                    var aux = []
-                    
-                    if(e=='0|0'){
-                        if(f=='mix'){
-                            aux.push('00')
-                            aux.push('01')
-                        }
-                        if(f=='0|0'){
-                            aux.push('00')
-                        }
-                        if(f=='1|1'){
-                            aux.push('01')
-                        }
-                    } 
-                    if(e=='1|1' ){
-                        if(f=='mix'){
-                            aux.push('10')
-                            aux.push('11')
-                        }
-                        if(f=='0|0'){
-                            aux.push('10')
-                        }
-                        if(f=='1|1'){
-                            aux.push('11')
-                        }
-                    } 
-                    if(e=='mix' ){
-                        if(f=='mix'){
-                            aux.push('00')
-                            aux.push('01')
-                            aux.push('10')
-                            aux.push('11')
-                        }
-                        if(f=='0|0'){
-                            aux.push('00')
-                            aux.push('10')
-                        }
-                        if(f=='1|1'){
-                            aux.push('01')
-                            aux.push('11')
-                        }
-                    }
-                    
-                    for (var x of aux){
-                        if( ! Object.keys(cnts).includes(x) ){
-                            cnts[x]=0
-                        }
-                        cnts[x]+=1 
-                    }
-                }
-            } 
-            
-            j+=1  
-        })
-        j*=2
-        
-        var probs1 = ld.calculate_probabilities_snp(snp1)
-        var probs2 = ld.calculate_probabilities_snp(snp2)
-        
-        var result = {}
-        result['chisq'] = 0
-        for( var k of Object.keys(cnts) ){
-            result['p'+k]=cnts[k]/j
-            
-            var p1=0
-            var p2=0
-            if(k[0]=='0'){
-                p1=probs1['p']
-            }
-            if(k[0]=='1'){
-                p1=probs1['q']
-            }
-            if(k[1]=='0'){
-                p2=probs2['p']
-            }
-            if(k[1]=='1'){
-                p2=probs2['q']
-            }
-            var expected = p1*p2*j
-            console.log(k, expected)
-            result['chisq'] += Math.pow( (cnts[k]-expected), 2)/expected
-        }
-        result['pvalue'] = jStat.chisquare.pdf( result['chisq'], 1 )
-        
-        result['d'] = (result['p00']*result['p11']) - (result['p01']*result['p10'])
-        var denominator = Math.min(probs1['p']*probs2['q'], probs1['q']*probs2['p'])  // dmax
-        if( result['d']<0 ){
-            denominator = Math.max(probs1['p']*probs2['q'], probs1['q']*probs2['p']) // dmin
-        }
-        result['dl'] = result['d']/denominator
-        var denominator_r2 = probs1['p']*probs1['q']*probs2['p']*probs2['q']
-        result['r2'] = result['d']/denominator_r2
+async function UI(div){
+    if(!div){
+        div = document.createElement('div')
+        div.id = 'LD1000UI'
+        document.body.appendChild(div)
+    }
+    if(typeof(div)=='string'){
+        div = document.getElementById(div)
     }
     
-    return result
-}
-
-/** 
-* Perform pairwise LD analysis with the snps of a certain chromosome in a given position range
-*
-* @param {number} chromosome Chromosome
-* @param {number} start Start Position
-* @param {number} end End Position
-*
-* @returns {Object} Object containing the linkage disequilibium result for all pairs combination of SNPs found in the given posiion range.
-* 
-* @example
-* let v = await ld.perform_ld()
-*/
-ld.perform_ld = async (chrom, start, end) => {
-    var chrom = ld_chrom.value
-    var start = ld_start.value
-    var end = ld_end.value
-    
-    var ld_result={}
-
-    var url=`http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr${chrom}.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz`
-    if(chrom=='MT'){
-        url='http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chrMT.phase3_callmom-v0_4.20130502.genotypes.vcf.gz'
-    }
-    if(chrom=='Y'){
-        url='http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chrY.phase3_integrated_v2b.20130502.genotypes.vcf.gz'
-    }
-    if(chrom=='X'){
-        url='http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chrX.phase3_shapeit2_mvncall_integrated_v1c.20130502.genotypes.vcf.gz'
-    }
-    
-    if(start < end){
-        action_ld.disabled=true
-        action_ld.innerHTML='Analyzing ...'
-        console.log(ld.vcflib)
-        var vld = await ld.vcflib.Vcf(url)
-        //ld.vcflib.Vcf(url).then( async (value) => {
-        //    var vld = value
-            var queries=[]
-            for( var i=start; i<=end; i++){
-                queries.push(chrom+','+i)
-            }
-            var snps={}
-            var info = await Promise.all( queries.map( async e => {
-                var r = await vld.query(e)
-                //console.log(e, '----', r)
-                if(r!=undefined){
-                    if(r.hit.length>0){
-                        r=r.hit[0]
-                        var ide = r[2]
-                        if(r[2]=='.'){
-                            ide=r[0]+'_'+r[1]
-                        }
-                        snps[ide] = r
-                        return ide
-                    }
-                }
-                
-                return null
-            } ) )
-            console.log(snps)
-            console.log(info)
-            var keys = Object.keys(snps)
-            var i=0
-            for (var k of keys){
-                var j=0
-                for (var v of keys){
-                    if(i<j){
-                        ld_result[k+'-'+v] = ld.calculate_ld(snps[k], snps[v])
-                    }
-                    j+=1
-                }
-                i+=1
-            }
-            
-            action_ld.disabled=false
-            action_ld.innerHTML='Analyze'
-            
-            console.log(ld_result)
-            
-            return ld_result
-        //})
-    }
-    else{
-        alert('End position must be higher than the start position')
-        return ld_result
-    }
-    
-}
-
-ld.showResults = (results, container) => {
-    eval(container).innerHTML=''
-    var htmls='<ul>'
-    var keys = Object.keys(results)
-    keys.forEach( e => {
-        if( results[e]['r2']!=-1 ){
-            htmls+=`<li> <strong>(${e.replace('-', ', ')})</strong> - R&sup2;: ${results[e]['r2']}, D': ${results[e]['dl']}, P-value: ${results[e]['pvalue']} </li>`
-        }
+    div.innerHTML=`
+        <h3><a href="https://episphere.github.io/ld1000/jonas" target="_blank">LD1000</a> calculator</h3>
+        Chromossome 1: <select id="chrSelect1"></select> Position 1 <input type="number" id="pos1" value=16876455>
+        <br>Chromossome 2<sup>*</sup>: <select id="chrSelect2"></select>  Position 2 <input type="number" id="pos2" value=16863727>
+        <br><sub>*</sub><span style="font-size:x-small">) by default the same chromossome, different chromossomes are not linked.</span>
+        <p><button id="retrievePosButton">Retrieve positions</button> directly from <a href="http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/" target="_blank">1000genomes</a>:</p>
+        <div id="resultsDiv">...</div>`
+    let chrs=[...Array(22)].map((_,i)=>`chr${i+1}`).concat(['X','Y','MT'])
+    let chrSelect1=div.querySelector('#chrSelect1');
+    chrs.forEach(chr=>{
+        let opt = document.createElement('option')
+        opt.textContent=chr
+        chrSelect1.appendChild(opt)
     })
-    htmls+='</ul>'
-    eval(container).innerHTML=htmls
-}
-
-/** 
-* Load a certain dependency library from link
-* 
-*
-* @param {string} url Library URL.
-* 
-* @example
-* loadScript('https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js')
-*
-*/
-ld.loadScript= async function(url){
-	console.log(`${url} loaded`)
-    async function asyncScript(url){
-        let load = new Promise((resolve,regect)=>{
-            let s = document.createElement('script')
-            s.src=url
-            s.onload=resolve
-            document.head.appendChild(s)
-        })
-        await load
-    }
-    // satisfy dependencies
-    await asyncScript(url)
-} 
-
-if(typeof(jStat)=="undefined"){
-    ld.loadScript('https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js')
-}
-
-if(ld.vcflib==null){
-    import('https://episphere.github.io/vcf/export.js').then( mod => {
-        ld.vcflib = mod
+    chrSelect1.value='chr7'
+    let chrSelect2=div.querySelector('#chrSelect2');
+    chrs.forEach(chr=>{
+        let opt = document.createElement('option')
+        opt.textContent=chr
+        chrSelect2.appendChild(opt)
     })
+    chrSelect2.value='chr7'
+    chrSelect1.onchange=function(){
+         chrSelect2.value=chrSelect1.value
+    }
+
+    async function retrieveChrPos(){ // caching VCF connections
+        div.querySelector('#resultsDiv').innerHTML=`<span style="color:maroon">Processing ... it shouldn't take more than a minute. <br>Check console if it doesn't and report error as <a href="https://github.com/episphere/ld1000/issues" target="_blank">an issue</a>. <br>(${Date()})</span>`
+        if(!VV[chrSelect1.value]){
+            VV[chrSelect1.value] = await connectVCF(chrSelect1.value)
+        }
+        if(!VV[chrSelect2.value]){ // in the rare instance chrSelect2 is different from 1
+            VV[chrSelect2.value] = await connectVCF(chrSelect2.value)
+        }
+        let V1 = VV[chrSelect1.value]
+        let V2 = VV[chrSelect2.value]
+        let pos1 = div.querySelector('#pos1').value
+        let pos2 = div.querySelector('#pos2').value
+        let chr1 = chrSelect1.value.match(/[0-9,X,Y,M,T]+/)[0]
+        let chr2 = chrSelect2.value.match(/[0-9,X,Y,M,T]+/)[0]
+
+        let chrpos1 = `chr${chr1}:${pos1}`
+        let chrpos2 = `chr${chr2}:${pos2}`
+        let data = await LDextraction(chrpos1,chrpos2)
+
+        // chrpos1='chr7:16876630',chrpos2='chr7:16863828'
+        
+        /*
+        let q1 = await V1.query(`${chr1}:${pos1}`)
+        q1.q=`${chr1}:${pos1}`
+        let q2 = await V2.query(`${chr2}:${pos2}`)
+        q2.q=`${chr2}:${pos2}`
+        async function qq(q,V){ // making sure long rows are caught
+            document.V0=V
+            if(q.hit.length>0){
+                console.log(`${q.q} ${q.hit.length} hit`)
+                // check hit is complete
+                if(V.cols.length>q.hit[0].length){ // stitch missing text
+                    //let  fg = await V.fetchGz([q.ii.slice(-1)[0]-V.keyGap,q.ii.slice(-1)[0]+4*V.keyGap])
+                    let txt = (await V.fetchGz(q.ii[0])).txt+(await V.fetchGz(q.ii[1])).txt
+                    q.hit = txt.split('\n')
+                        .filter(r=>r.match(q.q.replace(':','\t')))
+                        .map(r=>r.split('\t'))
+                }
+            }else{
+                console.log(`${q.q} no hit`)
+            }
+            return q
+        }
+        q1 = await qq(q1,V1)
+        q2 = await qq(q2,V2)
+        //debugger
+        //prepare counts
+
+        let data={
+            cols1:V1.cols.slice(9),
+            cols2:V2.cols.slice(9),
+            q1:q1,
+            q2:q2,
+            chrpos1:q1.q,
+            chrpos2:q2.q
+        }
+        */
+        
+        let h2=`<hr><table><tr style="vertical-align:top"><td>`
+        if(data.q1.hit.length>0){
+            h2+=`1) <b style="color:maroon;font-size:large"> ${data.chrpos1}</b><span style="font-size:x-small;color:darkgreen">
+            <br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp [ID]REF>ALT(QUAL-FILTER)
+            <br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp [${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q1.hit[0][4]}(${data.q1.hit[0][5]}-${data.q1.hit[0][6]})</span>
+            <br>Close Neighbours:
+            <br>${data.q1.range.map(r=>`&nbsp&nbsp&nbsp&nbsp<span style="color:blue;cursor:pointer" class="setPos1">${r[0]}:${r[1]}</span>`).join('<br>')}`
+        }else{
+            //debugger
+            h2+=`1) <b style="color:maroon;font-size:large"> ${data.chrpos1} --> No hit !</b>
+            <span style="font-size:small"><br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Maybe check kneighbouring positions.</span>
+            <br>Close Neighbours:
+            <br>${data.q1.range.map(r=>`&nbsp&nbsp&nbsp&nbsp<span style="color:blue;cursor:pointer" class="setPos1">${r[0]}:${r[1]}</span>`).join('<br>')}`
+            //debugger
+        }
+        h2+=`</td><td>`
+        if(data.q2.hit.length>0){
+            h2+=`2) <b style="color:maroon;font-size:large"> ${data.chrpos2}</b><span style="font-size:x-small;color:darkgreen">
+            <br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp [ID]REF>ALT(QUAL-FILTER)
+            <br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp [${data.q2.hit[0][2]}]${data.q2.hit[0][3]}>${data.q2.hit[0][4]}(${data.q2.hit[0][5]}-${data.q2.hit[0][6]})</span>
+            <br>Close Neighbours:
+            <br>${data.q2.range.map(r=>`&nbsp&nbsp&nbsp&nbsp<span style="color:blue;cursor:pointer" class="setPos2">${r[0]}:${r[1]}</span>`).join('<br>')}`
+        
+        }else{
+            h2+=`2) <b style="color:maroon;font-size:large"> ${data.chrpos2} --> No hit !</b>
+            <span style="font-size:small"><br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Maybe check kneighbouring positions.</span>
+            <br>Close Neighbours:
+            <br>${data.q2.range.map(r=>`&nbsp&nbsp&nbsp&nbsp<span style="color:blue;cursor:pointer" class="setPos2">${r[0]}:${r[1]}</span>`).join('<br>')}`
+        }
+        h2+=`</td></tr><table><tr><td>`
+
+        h2+='Counts'
+
+        h2+=`<table id="countCombinations" style="color:maroon">`
+        h2+=`<tr><td>(0|0)(0|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|0)(0|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|1)(0|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|1)(0|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|0)(1|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|0)(1|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|1)(1|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|1)(1|0)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|0)(0|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|0)(0|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|1)(0|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|1)(0|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|0)(1|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|0)(1|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(0|1)(1|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`<tr><td>(1|1)(1|1)</td><td style="color:blue">...</td><td style="font-size:x-small">...</td></tr>`
+        h2+=`</table>`
+        h2+=`<sub style="font-size:medium">*</sub>) <span id="OO" style="font-size:x-small">...</span>`
+        
+        //<span style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</span>`
+        
+        /*
+        let h=`<hr>`
+        h2+=`<table>`
+        h2++=`<tr align="left"><th>chr:position</th><th>${data.q1.q}</th><th>${data.q2.q}</th></th>`
+        h2++=`<tr align="left"><td style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q1.hit[0][4]}(${data.q1.hit[0][5]}-${data.q1.hit[0][6]})</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q2.hit[0][4]}(${data.q2.hit[0][5]}-${data.q2.hit[0][6]})</td></th>`
+        h2\+=`<tr align="left"><td>(0|0)(0|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(0|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(0|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(0|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|0)(1|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(1|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(1|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(1|0)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|0)(0|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(0|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(0|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(0|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|0)(1|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|0)(1|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(0|1)(1|1)</td><td>2</td><td>3</td></tr>`
+        h2+=`<tr align="left"><td>(1|1)(1|1)</td><td>2</td><td>3</td></tr>`
+        // total
+        h2+=`<tr align="left"><td>Total</td><td>123</td><td>123</td></tr>`
+        
+        h2+=`</table>`
+        */
+        
+        div.querySelector('#resultsDiv')
+        div.querySelector('#resultsDiv').innerHTML=h2
+
+        div.querySelectorAll('.setPos1').forEach(x=>{
+            x.onclick=function(){
+                div.querySelector('#pos1').value=this.textContent.split(':')[1]
+            }
+        })
+        div.querySelectorAll('.setPos2').forEach(x=>{
+            x.onclick=function(){
+                div.querySelector('#pos2').value=this.textContent.split(':')[1]
+            }
+        })
+
+        // counting combinations if both hit
+
+            
+
+        if((data.q1.hit.length>0)&(data.q1.hit.length>0)){ // if both hits
+            let qqPat1=data.q1.hit[0].slice(9)
+            let qqPat2=data.q2.hit[0].slice(9)
+            let qqPat=qqPat1.map((x,i)=>`(${x})(${qqPat2[i]})`) // combined pattern
+            let tbCount = div.querySelector('#countCombinations')
+            for(let i=0;i<tbCount.children[0].children.length;i++){
+                let tr=tbCount.children[0].children[i]
+                let pat=tr.children[0].textContent // combination pattern
+                tr.children[1].textContent=qqPat.filter(x=>x==pat).length
+                let pts = [] // participants
+                qqPat.forEach((x,i)=>{
+                    if(qqPat[i]==pat){
+                        pts.push(data.cols1[i])
+                    }
+                })
+                if(pts.length>1000){
+                    tr.children[2].textContent='*'
+                    div.querySelector('#OO').textContent=pts.join(', ')
+                }else{
+                    tr.children[2].textContent=pts.slice(0,3).join(', ')
+                    if(pts.length>3){
+                        tr.children[2].textContent+='...'
+                    }
+                }
+                //debugger
+                //4
+            }
+        }
+            
+        
+        //div.querySelector('#resultsDiv').innerHTML=`<hr>${JSON.stringify(q1.hit)}<hr>${JSON.stringify(q2.hit)}<hr>`
+        // try 7:16876630 vs 7:16876630
+        4
+        
+
+        
+    }
+
+    div.querySelector('#retrievePosButton').onclick=retrieveChrPos
+
+    
+    //retrieveChrPos()
 }
 
-
-export { Ld, ld }
-
+export{
+    connectVCF,
+    UI,
+    VV,
+    LDextraction
+}
