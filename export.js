@@ -239,46 +239,47 @@ async function UI(div){
         h2+=`</table>`
         h2+=`<sub style="font-size:medium">*</sub>) <span id="OO" style="font-size:x-small">...</span>`
         
-        //<span style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</span>`
-        
-        /*
-        let h=`<hr>`
-        h2+=`<table>`
-        h2++=`<tr align="left"><th>chr:position</th><th>${data.q1.q}</th><th>${data.q2.q}</th></th>`
-        h2++=`<tr align="left"><td style="font-size:x-small">[ID]REF>ALT(QUAL-FILTER)</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q1.hit[0][4]}(${data.q1.hit[0][5]}-${data.q1.hit[0][6]})</td><td style="font-size:x-small">[${data.q1.hit[0][2]}]${data.q1.hit[0][3]}>${data.q2.hit[0][4]}(${data.q2.hit[0][5]}-${data.q2.hit[0][6]})</td></th>`
-        h2\+=`<tr align="left"><td>(0|0)(0|0)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(1|0)(0|0)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(0|1)(0|0)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(1|1)(0|0)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(0|0)(1|0)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(1|0)(1|0)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(0|1)(1|0)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(1|1)(1|0)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(0|0)(0|1)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(1|0)(0|1)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(0|1)(0|1)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(1|1)(0|1)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(0|0)(1|1)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(1|0)(1|1)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(0|1)(1|1)</td><td>2</td><td>3</td></tr>`
-        h2+=`<tr align="left"><td>(1|1)(1|1)</td><td>2</td><td>3</td></tr>`
-        // total
-        h2+=`<tr align="left"><td>Total</td><td>123</td><td>123</td></tr>`
-        
-        h2+=`</table>`
-        */
-        
         div.querySelector('#resultsDiv')
         div.querySelector('#resultsDiv').innerHTML=h2
 
         div.querySelectorAll('.setPos1').forEach(x=>{
+            let pos1 = div.querySelector('#pos1')
+            x.onmouseover=function(){
+                x.style.backgroundColor='yellow'
+                pos1.style.backgroundColor='yellow'
+            }
+            x.onmouseleave=function(){
+                x.style.backgroundColor=''
+                pos1.style.backgroundColor=''
+            }
             x.onclick=function(){
-                div.querySelector('#pos1').value=this.textContent.split(':')[1]
+                pos1.value=this.textContent.split(':')[1]
+                pos1.style.backgroundColor='yellow'
+                pos1.style.color='red'
+                setTimeout(function(){
+                    pos1.style.backgroundColor=''
+                    pos1.style.color='black'
+                },1000)
             }
         })
         div.querySelectorAll('.setPos2').forEach(x=>{
+            let pos2 = div.querySelector('#pos2')
+            x.onmouseover=function(){
+                x.style.backgroundColor='yellow'
+                pos2.style.backgroundColor='yellow'
+            }
+            x.onmouseleave=function(){
+                x.style.backgroundColor=''
+                pos2.style.backgroundColor=''
+            }
             x.onclick=function(){
-                div.querySelector('#pos2').value=this.textContent.split(':')[1]
+                pos2.value=this.textContent.split(':')[1]
+                pos2.style.backgroundColor='yellow'
+                pos2.style.color='red'
+                setTimeout(function(){
+                    pos2.style.backgroundColor=''
+                    pos2.style.color='black'
+                },1000)
             }
         })
 
@@ -301,15 +302,30 @@ async function UI(div){
                         pts.push(data.cols1[i])
                     }
                 })
-                if(pts.length>1000){
-                    tr.children[2].textContent='*'
+                //if(pts.length>1000){
+                //    tr.children[2].textContent='*'
+                //    div.querySelector('#OO').textContent=pts.join(', ')
+                //}else{
+                tr.children[2].textContent=pts.slice(0,3).join(', ')
+                if(pts.length>3){
+                    tr.children[2].textContent+='...'
+                }
+                tr.children[2].onclick=function(x){
                     div.querySelector('#OO').textContent=pts.join(', ')
-                }else{
-                    tr.children[2].textContent=pts.slice(0,3).join(', ')
-                    if(pts.length>3){
-                        tr.children[2].textContent+='...'
+                }
+                tr.children[2].onmouseover=function(x){
+                    if(pts.length>0){
+                        tr.children[2].style.backgroundColor='yellow'
+                        tr.children[2].style.cursor='pointer'
                     }
                 }
+                tr.children[2].onmouseleave=function(x){
+                    if(pts.length>0){
+                        tr.children[2].style.backgroundColor=''
+                        tr.children[2].style.cursor=''
+                    }
+                }
+                //}
                 //debugger
                 //4
             }
