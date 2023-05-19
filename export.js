@@ -241,7 +241,7 @@ async function UI(div){
         
         div.querySelector('#resultsDiv')
         div.querySelector('#resultsDiv').innerHTML=h2
-
+        let retr = div.querySelector('#retrievePosButton')
         div.querySelectorAll('.setPos1').forEach(x=>{
             let pos1 = div.querySelector('#pos1')
             x.onmouseover=function(){
@@ -256,9 +256,14 @@ async function UI(div){
                 pos1.value=this.textContent.split(':')[1]
                 pos1.style.backgroundColor='yellow'
                 pos1.style.color='red'
+                retr.style.backgroundColor='yellow'
+                retr.style.color='red'
+                retr.click()
                 setTimeout(function(){
                     pos1.style.backgroundColor=''
                     pos1.style.color='black'
+                    retr.style.color=''
+                    retr.style.backgroundColor=''
                 },1000)
             }
         })
@@ -276,9 +281,14 @@ async function UI(div){
                 pos2.value=this.textContent.split(':')[1]
                 pos2.style.backgroundColor='yellow'
                 pos2.style.color='red'
+                retr.style.backgroundColor='yellow'
+                retr.style.color='red'
+                retr.click()
                 setTimeout(function(){
                     pos2.style.backgroundColor=''
                     pos2.style.color='black'
+                    retr.style.color=''
+                    retr.style.backgroundColor=''
                 },1000)
             }
         })
@@ -287,7 +297,7 @@ async function UI(div){
 
             
 
-        if((data.q1.hit.length>0)&(data.q1.hit.length>0)){ // if both hits
+        if((data.q1.hit.length>0)&(data.q2.hit.length>0)){ // if both hits
             let qqPat1=data.q1.hit[0].slice(9)
             let qqPat2=data.q2.hit[0].slice(9)
             let qqPat=qqPat1.map((x,i)=>`(${x})(${qqPat2[i]})`) // combined pattern
